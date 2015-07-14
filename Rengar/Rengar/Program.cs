@@ -60,6 +60,7 @@ namespace Rengar
             spellMenu.AddItem(new MenuItem("useSmite", "Use Smite Combo").SetValue(true));
             spellMenu.AddItem(new MenuItem("useYoumumu", "Use Youmumu while Steath").SetValue(true));
             spellMenu.AddItem(new MenuItem("Youmumu", "Youmumu while steath mode").SetValue(new StringList(new[] { "Always", "ComboMode" }, 0)));
+            spellMenu.AddItem(new MenuItem("DontWaitReset","Dont Wait Reset AA with Q").SetValue(true));
             Menu Clear = spellMenu.AddSubMenu(new Menu("Clear","Clear"));
             Clear.AddItem(new MenuItem("useQ", "use Q").SetValue(true));
             Clear.AddItem(new MenuItem("useE", "use E").SetValue(true));
@@ -107,6 +108,7 @@ namespace Rengar
                 }
             }
         }
+        private static bool dontwaitQ { get { return Menu.Item("DontWaitReset").GetValue<bool>(); } }
         private static int autoSmiteHeal { get { return Menu.Item("AutoSmite").GetValue<Slider>().Value; } }
         private static bool useSmiteSteal { get { return Menu.Item("SmiteSteal").GetValue<bool>(); } }
         private static bool useSmiteKS { get { return Menu.Item("SmiteKS").GetValue<bool>(); } }
@@ -272,6 +274,13 @@ namespace Rengar
                                     E.Cast(target);
                             }
                         }
+                        if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
+                        {
+                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack() && dontwaitQ)
+                            {
+                                Q.Cast();
+                            }
+                        }
                     }
                     else
                     {
@@ -307,6 +316,13 @@ namespace Rengar
                             {
                                 if (E.IsReady())
                                     E.Cast(target);
+                            }
+                        }
+                        if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
+                        {
+                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack() && dontwaitQ)
+                            {
+                                Q.Cast();
                             }
                         }
                     }
