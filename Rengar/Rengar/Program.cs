@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,11 +18,12 @@ namespace Rengar
 
         private static Orbwalking.Orbwalker Orbwalker;
 
-        private static Spell Q, W, E, R;
+        private static Spell Q, W, E, R, summoner1, summoner2;
 
         private static Menu Menu;
 
         private static string mode { get { return Menu.Item("ComboMode").GetValue<StringList>().SelectedValue; } }
+        private static string youmumu { get { return Menu.Item("Youmumu").GetValue<StringList>().SelectedValue; } }
         static void Main(string[] args)
         {
             CustomEvents.Game.OnGameLoad += Game_OnGameLoad;
@@ -41,6 +42,8 @@ namespace Rengar
             E.MinHitChance = HitChance.Medium;
             W.SetSkillshot(0.25f, 500, 2000, false, SkillshotType.SkillshotCircle);
             W.MinHitChance = HitChance.Medium;
+            summoner1 = new Spell(SpellSlot.Summoner1);
+            summoner2 = new Spell(SpellSlot.Summoner2);
             //Q.SetSkillshot(300, 50, 2000, false, SkillshotType.SkillshotLine);
 
 
@@ -53,6 +56,9 @@ namespace Rengar
 
             Menu spellMenu = Menu.AddSubMenu(new Menu("Spells", "Spells"));
             spellMenu.AddItem(new MenuItem("ComboMode", "ComboMode").SetValue(new StringList(new[] { "Snare", "Burst"},0)));
+            spellMenu.AddItem(new MenuItem("useSmite", "Use Smite Combo").SetValue(true));
+            spellMenu.AddItem(new MenuItem("useYoumumu", "Use Youmumu while Steath").SetValue(true));
+            spellMenu.AddItem(new MenuItem("Youmumu", "Youmumu while steath mode").SetValue(new StringList(new[] { "Always", "ComboMode" }, 0)));
             Menu Clear = spellMenu.AddSubMenu(new Menu("Clear","Clear"));
             Clear.AddItem(new MenuItem("useQ", "use Q").SetValue(true));
             Clear.AddItem(new MenuItem("useE", "use E").SetValue(true));
@@ -60,8 +66,10 @@ namespace Rengar
             Clear.AddItem(new MenuItem("Save", "Save 5  FEROCITY").SetValue(false));
             Menu auto = Menu.AddSubMenu(new Menu("Misc", "Misc"));
             auto.AddItem(new MenuItem("AutoHeal","Auto W if HP <").SetValue(new Slider(20,0,100)));
+            auto.AddItem(new MenuItem("AutoSmite", "Auto Smite Heal if HP <").SetValue(new Slider(20, 0, 100)));
             auto.AddItem(new MenuItem("Interrupt", "Interrupt with E").SetValue(true));
-
+            auto.AddItem(new MenuItem("SmiteKS", "Smite KillSteal").SetValue(true));
+            auto.AddItem(new MenuItem("SmiteSteal", "Smite Steal Baron Dragon").SetValue(true));
 
             Menu.AddToMainMenu();
 
@@ -86,6 +94,11 @@ namespace Rengar
                 }
             }
         }
+        private static int autoSmiteHeal { get { return Menu.Item("AutoSmite").GetValue<Slider>().Value; } }
+        private static bool useSmiteSteal { get { return Menu.Item("SmiteSteal").GetValue<bool>(); } }
+        private static bool useSmiteKS { get { return Menu.Item("SmiteKS").GetValue<bool>(); } }
+        private static bool useSmiteCombo { get { return Menu.Item("useSmite").GetValue<bool>(); } }
+        private static bool useyoumumu { get { return Menu.Item("useYoumumu").GetValue<bool>(); } }
         private static bool useQ { get { return Menu.Item("useQ").GetValue<bool>(); } }
         private static bool useE { get { return Menu.Item("useE").GetValue<bool>(); } }
         private static bool useW { get { return Menu.Item("useW").GetValue<bool>(); } }
@@ -98,6 +111,10 @@ namespace Rengar
                 return;
             //checkbuff();
             KillSteall();
+            if (ItemData.Youmuus_Ghostblade.GetItem().IsReady() && youmumu == "Always" && Player.HasBuff("RengarR") && useyoumumu)
+            {
+                ItemData.Youmuus_Ghostblade.GetItem().Cast();
+            }
             if(Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo)
             {
                 combo();
@@ -131,10 +148,22 @@ namespace Rengar
                 {
                     Q.Cast();
                 }
-                else
+                else if (HasItem())
                 {
-                    if (HasItem())
-                        CastItem();
+                    CastItem();
+                }
+                else if (E.IsReady())
+                {
+                    var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
+                    if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                    {
+                        E.Cast(targetE);
+                    }
+                    foreach (var tar in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
+                    {
+                        if (E.IsReady())
+                            E.Cast(tar);
+                    }
                 }
             }
             else if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.LaneClear)
@@ -170,7 +199,9 @@ namespace Rengar
                 Orbwalking.ResetAutoAttackTimer();
             }
             //if (spell.Name.ToLower().Contains("rengarw")) ;
-            //if (spell.Name.ToLower().Contains("rengare")) ;
+            if (spell.Name.ToLower().Contains("rengare"))
+                if (Orbwalking.LastAATick < Utils.TickCount && Utils.TickCount < Orbwalking.LastAATick + Player.AttackCastDelay * 1000 + 40)
+                    Orbwalking.ResetAutoAttackTimer();
         }
         public static void Unit_OnDash(Obj_AI_Base sender, Dash.DashItem args)
         {
@@ -187,6 +218,22 @@ namespace Rengar
 
         public static void combo()
         {
+            if (hasSmite && useSmiteCombo && SmiteSlot.IsReady())
+            {
+                if (hasSmiteBlue || hasSmiteRed)
+                {
+                    var target = TargetSelector.GetTarget(650, TargetSelector.DamageType.Physical);
+                    if (target.IsValidTarget() && !target.IsZombie && Player.Distance(target.Position) <= Player.BoundingRadius + 500 + target.BoundingRadius)
+                    {
+                        SmiteSlot.Cast(target);
+                    }
+                }
+            }
+            
+            if (ItemData.Youmuus_Ghostblade.GetItem().IsReady() && youmumu == "ComboMode" && Player.HasBuff("RengarR") && useyoumumu)
+            {
+                ItemData.Youmuus_Ghostblade.GetItem().Cast();
+            }
             if (!Player.HasBuff("RengarR"))
             {
                 if (mode == "Snare")
@@ -198,15 +245,18 @@ namespace Rengar
                         {
                             W.Cast(targetW);
                         }
-                        var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
-                        if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                        if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 || Orbwalking.CanMove(40))
                         {
-                            E.Cast(targetE);
-                        }
-                        foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
-                        {
-                            if (E.IsReady())
-                                E.Cast(target);
+                            var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
+                            if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                            {
+                                E.Cast(targetE);
+                            }
+                            foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
+                            {
+                                if (E.IsReady())
+                                    E.Cast(target);
+                            }
                         }
                     }
                     else
@@ -232,28 +282,42 @@ namespace Rengar
                         {
                             W.Cast(targetW);
                         }
-                        var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
-                        if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                        if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 || Orbwalking.CanMove(40))
                         {
-                            E.Cast(targetE);
-                        }
-                        foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
-                        {
-                            if (E.IsReady())
-                                E.Cast(target);
+                            var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
+                            if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                            {
+                                E.Cast(targetE);
+                            }
+                            foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
+                            {
+                                if (E.IsReady())
+                                    E.Cast(target);
+                            }
                         }
                     }
-                    else if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0)
+                    else
                     {
-                        var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
-                        if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                        if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
                         {
-                            E.Cast(targetE);
+                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack())
+                            {
+                                Q.Cast();
+                            }
+
                         }
-                        foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
+                        if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 && !Player.HasBuff("rengarpassivebuff"))
                         {
-                            if (E.IsReady())
-                                E.Cast(target);
+                            var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
+                            if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                            {
+                                E.Cast(targetE);
+                            }
+                            foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
+                            {
+                                if (E.IsReady())
+                                    E.Cast(target);
+                            }
                         }
                     }
                 }
@@ -308,6 +372,52 @@ namespace Rengar
                         E.Cast(target);
                 }
             }
+            if (hasSmite && useSmiteSteal)
+            {
+                if (SmiteSlot.IsReady())
+                {
+                    var creep = MinionManager.GetMinions(800, MinionTypes.All, MinionTeam.Neutral).Where(x => x.Name == "SRU_Dragon" || x.Name == "SRU_Baron");
+                    foreach (var x in creep.Where(y => Player.Distance(y.Position) <= Player.BoundingRadius + 500 + y.BoundingRadius))
+                    {
+                        if (x != null && x.Health <= SmiteDamage)
+                            SmiteSlot.Cast(x);
+                    }
+                }
+            }
+            if (hasSmite && useSmiteKS)
+            {
+                if (SmiteSlot.IsReady())
+                {
+                    if (hasSmiteBlue || hasSmiteRed)
+                    {
+                        var hero = HeroManager.Enemies.Where(x => x.IsValidTarget(800) && !x.IsZombie);
+                        foreach (var x in hero.Where(y => Player.Distance(y.Position) <= Player.BoundingRadius + 500 + y.BoundingRadius))
+                        {
+                            if (hasSmiteBlue && x != null && x.Health <= SmiteBlueDamage)
+                                SmiteSlot.Cast(x);
+                            if (hasSmiteRed && x != null && x.Health <= SmiteRedDamage)
+                                SmiteSlot.Cast(x);
+                        }
+                    }
+                }
+            }
+            if (hasSmite && Player.Health*100/Player.MaxHealth <= autoSmiteHeal)
+            {
+                if (SmiteSlot.IsReady())
+                {
+                    if (hasSmitePink && Player.CountEnemiesInRange(800) != 0)
+                    {
+                        var creep = MinionManager.GetMinions(800, MinionTypes.All, MinionTeam.Neutral).Where(x => x.Name != "SRU_Dragon" && x.Name != "SRU_Baron");
+                        {
+                            foreach (var x in creep.Where(y => Player.Distance(y.Position) <= Player.BoundingRadius + 500 + y.BoundingRadius))
+                            {
+                                if (x != null && x.Health <= SmiteDamage)
+                                    SmiteSlot.Cast(x);
+                            }
+                        }
+                    }
+                }
+            }
         }
         public static bool HasItem()
         {
@@ -337,5 +447,33 @@ namespace Rengar
             }
             Game.Say(temp);
         }
+
+        #region Smite
+        private static bool hasSmite { get { return SmiteName.Any(x => x == summoner1.Instance.Name || x == summoner2.Instance.Name); } }
+        private static List<string> SmiteName = new List<string> { "s5_summonersmiteplayerganker", "itemsmiteaoe", "s5_summonersmitequick", "s5_summonersmiteduel", "summonersmite" };
+        private static List <int> listsmitedamge = new List<int> {390, 410, 430, 450, 480, 510, 540, 570, 600, 640, 680, 720, 760, 800, 850, 900, 950, 1000};
+        private static Spell SmiteSlot 
+        { 
+            get
+            {
+                if (SmiteName.Any(x => x == summoner1.Instance.Name))
+                {
+                    return summoner1;
+                }
+                else if (SmiteName.Any(x => x == summoner2.Instance.Name))
+                {
+                    return summoner2;
+                }
+                else return null;
+            }
+        }
+        private static bool hasSmiteRed { get { return "s5_summonersmiteduel" == summoner1.Instance.Name || "s5_summonersmiteduel" == summoner2.Instance.Name; } }
+        private static bool hasSmiteBlue { get { return "s5_summonersmiteplayerganker" == summoner1.Instance.Name || "s5_summonersmiteplayerganker" == summoner2.Instance.Name; } }
+        private static bool hasSmitePink { get { return "itemsmiteaoe" == summoner1.Instance.Name || "itemsmiteaoe" == summoner2.Instance.Name; } }
+        private static bool hasSmiteGrey { get { return "s5_summonersmitequick" == summoner1.Instance.Name || "s5_summonersmitequick" == summoner2.Instance.Name; } }
+        private static int SmiteRedDamage { get { return 54 + 6*Player.Level; } }
+        private static int SmiteBlueDamage { get { return 20 + 8 * Player.Level; } }
+        private static int SmiteDamage { get { return listsmitedamge[Player.Level-1]; } }
+        #endregion Smite
     }
 }
