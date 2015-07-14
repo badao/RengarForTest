@@ -55,6 +55,7 @@ namespace Rengar
             TargetSelector.AddToMenu(ts);
 
             Menu spellMenu = Menu.AddSubMenu(new Menu("Spells", "Spells"));
+            spellMenu.AddItem(new MenuItem("ComboSwitch", "ComboModeSwitch").SetValue(new KeyBind("T".ToCharArray()[0],KeyBindType.Press)));
             spellMenu.AddItem(new MenuItem("ComboMode", "ComboMode").SetValue(new StringList(new[] { "Snare", "Burst"},0)));
             spellMenu.AddItem(new MenuItem("useSmite", "Use Smite Combo").SetValue(true));
             spellMenu.AddItem(new MenuItem("useYoumumu", "Use Youmumu while Steath").SetValue(true));
@@ -70,6 +71,8 @@ namespace Rengar
             auto.AddItem(new MenuItem("Interrupt", "Interrupt with E").SetValue(true));
             auto.AddItem(new MenuItem("SmiteKS", "Smite KillSteal").SetValue(true));
             auto.AddItem(new MenuItem("SmiteSteal", "Smite Steal Baron Dragon").SetValue(true));
+            Menu Drawing = Menu.AddSubMenu(new Menu("Drawing", "Drawing"));
+            Drawing.AddItem(new MenuItem("DrawMode", "Draw Combo Mode").SetValue(true));
 
             Menu.AddToMainMenu();
 
@@ -81,7 +84,17 @@ namespace Rengar
             Obj_AI_Base.OnProcessSpellCast += oncast;
             CustomEvents.Unit.OnDash += Unit_OnDash;
             Interrupter2.OnInterruptableTarget += Interrupter2_OnInterruptableTarget;
-            Game.PrintChat("Welcome to Rengar World");
+            LeagueSharp.Drawing.OnDraw += Drawing_OnDraw;
+        }
+
+        private static void Drawing_OnDraw(EventArgs args)
+        {
+            if (Player.IsDead) return;
+            if (Menu.Item("DrawMode").GetValue<bool>())
+            {
+                var x = Drawing.WorldToScreen(Player.Position);
+                Drawing.DrawText(x[0], x[1], Color.White, mode);
+            }
         }
 
         private static void Interrupter2_OnInterruptableTarget(Obj_AI_Hero sender, Interrupter2.InterruptableTargetEventArgs args)
@@ -109,6 +122,7 @@ namespace Rengar
         {
             if (Player.IsDead)
                 return;
+            ComboModeSwitch();
             //checkbuff();
             KillSteall();
             if (ItemData.Youmuus_Ghostblade.GetItem().IsReady() && youmumu == "Always" && Player.HasBuff("RengarR") && useyoumumu)
@@ -321,6 +335,7 @@ namespace Rengar
                         }
                     }
                 }
+
                 else Game.Say("stupid");
             }
         }
@@ -475,5 +490,29 @@ namespace Rengar
         private static int SmiteBlueDamage { get { return 20 + 8 * Player.Level; } }
         private static int SmiteDamage { get { return listsmitedamge[Player.Level-1]; } }
         #endregion Smite
+        private static void ComboModeSwitch()
+        {
+            var comboMode = mode;
+            var lasttime = Environment.TickCount - _lastTick;
+            if (!Menu.Item("ComboSwitch").GetValue<KeyBind>().Active ||
+                lasttime <= Game.Ping)
+            {
+                return;
+            }
+
+            switch (comboMode)
+            {
+                case "Snare":
+                    Menu.Item("ComboMode").SetValue(new StringList(new[] { "Snare", "Burst"},1));
+                    _lastTick = Environment.TickCount + 300;
+                    break;
+                case "Burst":
+                    Menu.Item("ComboMode").SetValue(new StringList(new[] { "Snare", "Burst"},0));
+                    _lastTick = Environment.TickCount + 300;
+                    break;
+            }
+        }
+        private static int _lastTick;
+
     }
 }
