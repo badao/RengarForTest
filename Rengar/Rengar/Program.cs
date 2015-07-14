@@ -34,7 +34,7 @@ namespace Rengar
                 return;
 
             Q = new Spell(SpellSlot.Q);
-            W = new Spell(SpellSlot.W,400);
+            W = new Spell(SpellSlot.W,300);
             E = new Spell(SpellSlot.E,1000);
             R = new Spell(SpellSlot.R);
             E.SetSkillshot(0.25f, 70, 1500, true, SkillshotType.SkillshotLine);
