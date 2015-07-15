@@ -86,6 +86,17 @@ namespace Rengar
             CustomEvents.Unit.OnDash += Unit_OnDash;
             Interrupter2.OnInterruptableTarget += Interrupter2_OnInterruptableTarget;
             LeagueSharp.Drawing.OnDraw += Drawing_OnDraw;
+            LeagueSharp.Obj_AI_Base.OnBuffRemove += Obj_AI_Base_OnBuffRemove;
+        }
+
+        private static void Obj_AI_Base_OnBuffRemove(Obj_AI_Base sender, Obj_AI_BaseBuffRemoveEventArgs args)
+        {
+            if (!sender.IsMe)
+                return;
+            if ( args.Buff.Name == "rengarqbase" ||args.Buff.Name == "rengarqemp" )
+            {
+
+            }
         }
 
         private static void Drawing_OnDraw(EventArgs args)
@@ -124,6 +135,13 @@ namespace Rengar
         {
             if (Player.IsDead)
                 return;
+            if (Player.HasBuff("rengarqbase") || Player.HasBuff("rengarqemp"))
+            {
+                if (Orbwalking.CanMove(100))
+                {
+                    Orbwalking.ResetAutoAttackTimer();
+                }
+            }
             ComboModeSwitch();
             //checkbuff();
             KillSteall();
@@ -261,7 +279,7 @@ namespace Rengar
                         {
                             W.Cast(targetW);
                         }
-                        if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 || Orbwalking.CanMove(40))
+                        if (Orbwalking.CanMove(40))
                         {
                             var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
                             if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
@@ -305,7 +323,7 @@ namespace Rengar
                         {
                             W.Cast(targetW);
                         }
-                        if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 || Orbwalking.CanMove(40))
+                        if ( Orbwalking.CanMove(40))
                         {
                             var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
                             if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
