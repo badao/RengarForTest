@@ -1,12 +1,15 @@
-#region
-
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using LeagueSharp;
+using LeagueSharp.Common;
+using LeagueSharp.Common.Data;
 using SharpDX;
 using Color = System.Drawing.Color;
+using ItemData = LeagueSharp.Common.Data.ItemData;
 
-#endregion
 
 namespace Rengar
 {
@@ -69,7 +72,7 @@ namespace Rengar
 
         private static void GameOnOnWndProc(WndEventArgs args)
         {
-            if (args.Msg != (uint) WindowsMessages.WM_LBUTTONDOWN)
+            if (args.Msg != (uint)WindowsMessages.WM_LBUTTONDOWN)
             {
                 return;
             }
@@ -304,8 +307,10 @@ namespace Rengar
             IEnumerable<Obj_AI_Hero> ignoredChamps = null,
             Vector3? rangeCheckFrom = null)
         {
-            var t = GetTarget(ObjectManager.Player, spell.Range, 
-                spell.DamageType, ignoreShield, ignoredChamps, rangeCheckFrom);
+            //var t = GetTarget(ObjectManager.Player, spell.Range,
+            //    spell.DamageType, ignoreShield, ignoredChamps, rangeCheckFrom);
+            var t = GetTarget(ObjectManager.Player,spell.Range,
+                DamageType.Magical, ignoreShield, ignoredChamps, rangeCheckFrom);
 
             if (spell.Collision && spell.GetPrediction(t).Hitchance != HitChance.Collision)
             {
@@ -341,7 +346,7 @@ namespace Rengar
                     ignoredChamps = new List<Obj_AI_Hero>();
                 }
 
-                var damageType = (Damage.DamageType) Enum.Parse(typeof(Damage.DamageType), type.ToString());
+                var damageType = (Damage.DamageType)Enum.Parse(typeof(Damage.DamageType), type.ToString());
 
                 if (_configMenu != null && IsValidTarget(
                     SelectedTarget, _configMenu.Item("ForceFocusSelected").GetValue<bool>() ? float.MaxValue : range,
