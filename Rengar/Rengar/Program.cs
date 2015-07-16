@@ -355,10 +355,7 @@ namespace Rengar
                         }
                         if (Q.IsReady() && Player.IsDashing())
                         {
-                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack())
-                            {
-                                Q.Cast();
-                            }
+                            Q.Cast();
                         }
 
                         if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 && !Player.HasBuff("rengarpassivebuff") && !Player.IsDashing())
