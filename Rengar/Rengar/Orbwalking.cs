@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -346,7 +346,7 @@ namespace Rengar
         {
             try
             {
-                if (target.IsValidTarget() && CanAttack())
+                if (target.IsValidTarget() && CanAttack() && InAutoAttackRange(target))
                 {
                     DisableNextAttack = false;
                     FireBeforeAttack(target);
@@ -462,7 +462,7 @@ namespace Rengar
         public class Orbwalker
         {
             private const float LaneClearWaitTimeMod = 2f;
-            private static Menu _config;
+            public static Menu _config;
             private readonly Obj_AI_Hero Player;
             private Obj_AI_Base _forcedTarget;
             private OrbwalkingMode _mode = OrbwalkingMode.None;
