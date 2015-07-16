@@ -74,7 +74,7 @@ namespace Rengar
             auto.AddItem(new MenuItem("SmiteSteal", "Smite Steal Baron Dragon").SetValue(true));
             Menu Drawing = Menu.AddSubMenu(new Menu("Drawing", "Drawing"));
             Drawing.AddItem(new MenuItem("DrawMode", "Draw Combo Mode").SetValue(true));
-
+            Drawing.AddItem(new MenuItem("Notify", "Notify Selected Target").SetValue(true));
             Menu.AddToMainMenu();
 
             //Drawing.OnDraw += Drawing_OnDraw;
@@ -119,6 +119,7 @@ namespace Rengar
                 }
             }
         }
+        private static bool notify { get { return Menu.Item("Notify").GetValue<bool>(); } }
         private static bool dontwaitQ { get { return Menu.Item("DontWaitReset").GetValue<bool>(); } }
         private static int autoSmiteHeal { get { return Menu.Item("AutoSmite").GetValue<Slider>().Value; } }
         private static bool useSmiteSteal { get { return Menu.Item("SmiteSteal").GetValue<bool>(); } }
@@ -131,17 +132,19 @@ namespace Rengar
         private static bool Save { get { return Menu.Item("Save").GetValue<bool>(); } }
         private static int Heal { get { return Menu.Item("AutoHeal").GetValue<Slider>().Value; } }
         private static bool Interrupt { get { return Menu.Item("Interrupt").GetValue<bool>(); } }
+        private static int extrawindup { get { return Orbwalking.Orbwalker._config.Item("ExtraWindup").GetValue<Slider>().Value; } }
         public static void Game_OnGameUpdate(EventArgs args)
         {
             if (Player.IsDead)
                 return;
             if (Player.HasBuff("rengarqbase") || Player.HasBuff("rengarqemp"))
             {
-                if (Orbwalking.CanMove(100))
+                if (Orbwalking.CanMove(extrawindup + 100))
                 {
                     Orbwalking.ResetAutoAttackTimer();
                 }
             }
+            DrawSelectedTarget();
             ComboModeSwitch();
             //checkbuff();
             KillSteall();
@@ -158,6 +161,7 @@ namespace Rengar
                 clear();
             }
         }
+
         public static void OnAttack(AttackableUnit unit, AttackableUnit target)
         {
 
@@ -243,8 +247,15 @@ namespace Rengar
                 return;
             if (Orbwalker.ActiveMode == Orbwalking.OrbwalkingMode.Combo && HasItem())
             {
-                Utility.DelayAction.Add(
-                               (int)(/*Player.AttackCastDelay * 1000 + */args.Duration - 40 - Game.Ping/2), () => CastItem());
+                if (args.Duration - 100 - Game.Ping / 2 > 0)
+                {
+                    Utility.DelayAction.Add(
+                                   (int)(/*Player.AttackCastDelay * 1000 + */args.Duration - 100 - Game.Ping / 2), () => CastItem());
+                }
+                else
+                {
+                    CastItem();
+                }
             }
             //Game.Say("dash");
         }
@@ -279,7 +290,7 @@ namespace Rengar
                         {
                             W.Cast(targetW);
                         }
-                        if (Orbwalking.CanMove(40))
+                        if (Orbwalking.CanMove(extrawindup))
                         {
                             var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
                             if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
@@ -294,7 +305,7 @@ namespace Rengar
                         }
                         if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
                         {
-                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack() && dontwaitQ)
+                            if (Orbwalking.CanMove(extrawindup) && !Orbwalking.CanAttack() && dontwaitQ)
                             {
                                 Q.Cast();
                             }
@@ -323,7 +334,7 @@ namespace Rengar
                         {
                             W.Cast(targetW);
                         }
-                        if ( Orbwalking.CanMove(40))
+                        if ( Orbwalking.CanMove(extrawindup))
                         {
                             var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
                             if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
@@ -338,7 +349,7 @@ namespace Rengar
                         }
                         if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
                         {
-                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack() && dontwaitQ)
+                            if (Orbwalking.CanMove(extrawindup) && !Orbwalking.CanAttack() && dontwaitQ)
                             {
                                 Q.Cast();
                             }
@@ -348,7 +359,7 @@ namespace Rengar
                     {
                         if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
                         {
-                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack())
+                            if (Orbwalking.CanMove(extrawindup) && !Orbwalking.CanAttack())
                             {
                                 Q.Cast();
                             }
@@ -382,7 +393,7 @@ namespace Rengar
                         {
                             W.Cast(targetW);
                         }
-                        if (Orbwalking.CanMove(40))
+                        if (Orbwalking.CanMove(extrawindup))
                         {
                             var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
                             if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
@@ -397,7 +408,7 @@ namespace Rengar
                         }
                         if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
                         {
-                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack() && dontwaitQ)
+                            if (Orbwalking.CanMove(extrawindup) && !Orbwalking.CanAttack() && dontwaitQ)
                             {
                                 Q.Cast();
                             }
@@ -407,7 +418,7 @@ namespace Rengar
                     {
                         if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
                         {
-                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack())
+                            if (Orbwalking.CanMove(extrawindup) && !Orbwalking.CanAttack())
                             {
                                 Q.Cast();
                             }
@@ -610,6 +621,44 @@ namespace Rengar
             }
         }
         private static int _lastTick;
+        private static void DrawSelectedTarget()
+        {
+            if (notify)
+            {
+                var target = TargetSelector.GetSelectedTarget();
+                if (target != null)
+                {
+                    if (notifyselected.Text == target.Name)
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        Notifications.RemoveNotification(notifyselected);
+                        notifyselected = new Notification(target.Name);
+                        Notifications.AddNotification(notifyselected);
+                    }
+                }
+                else
+                {
+                    if (notifyselected.Text == "null")
+                    {
+                        return;
+                    }
+                    else
+                    {
+                        Notifications.RemoveNotification(notifyselected);
+                        notifyselected = new Notification("null");
+                        Notifications.AddNotification(notifyselected);
+                    }
+                }
+            }
+            else
+            {
+                Notifications.RemoveNotification(notifyselected);
+            }
+        }
+        private static Notification notifyselected = new Notification("null");
 
     }
 }
