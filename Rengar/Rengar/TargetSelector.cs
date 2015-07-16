@@ -21,7 +21,9 @@ namespace Rengar
         {
             Game.OnWndProc += GameOnOnWndProc;
             Drawing.OnDraw += DrawingOnOnDraw;
+            Game.OnUpdate += Game_OnUpdate;
         }
+
 
         #endregion
 
@@ -51,13 +53,25 @@ namespace Rengar
         #region Vars
 
         public static TargetingMode Mode = TargetingMode.AutoPriority;
-        private static Menu _configMenu;
-        private static Obj_AI_Hero _selectedTargetObjAiHero;
+        public static Menu _configMenu;
+        public static Obj_AI_Hero _selectedTargetObjAiHero;
 
         #endregion
 
         #region EventArgs
-
+        private static void Game_OnUpdate(EventArgs args)
+        {
+            if (_selectedTargetObjAiHero == null)
+                return;
+            if (!_selectedTargetObjAiHero.IsValidTarget(2000))
+            {
+                _selectedTargetObjAiHero = null;
+            }
+            if (_selectedTargetObjAiHero.IsDead)
+            {
+                _selectedTargetObjAiHero = null;
+            }
+        }
         private static void DrawingOnOnDraw(EventArgs args)
         {
             if (_selectedTargetObjAiHero.IsValidTarget() && _configMenu != null &&
@@ -189,7 +203,7 @@ namespace Rengar
             _configMenu = config;
             config.AddItem(new MenuItem("FocusSelected", "Focus selected target").SetShared().SetValue(true));
             config.AddItem(
-                new MenuItem("ForceFocusSelected", "Only attack selected target").SetShared().SetValue(false));
+                new MenuItem("ForceFocusSelected", "Only attack selected target").SetShared().SetValue(new KeyBind("G".ToCharArray()[0],KeyBindType.Toggle)));
             config.AddItem(
                 new MenuItem("SelTColor", "Selected target color").SetShared().SetValue(new Circle(true, Color.Red)));
             config.AddItem(new MenuItem("Sep", "").SetShared());
@@ -349,7 +363,7 @@ namespace Rengar
                 var damageType = (Damage.DamageType)Enum.Parse(typeof(Damage.DamageType), type.ToString());
 
                 if (_configMenu != null && IsValidTarget(
-                    SelectedTarget, _configMenu.Item("ForceFocusSelected").GetValue<bool>() ? float.MaxValue : range,
+                    SelectedTarget, _configMenu.Item("ForceFocusSelected").GetValue<KeyBind>().Active ? float.MaxValue : range,
                     type, ignoreShieldSpells, rangeCheckFrom))
                 {
                     return SelectedTarget;
