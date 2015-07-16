@@ -56,7 +56,7 @@ namespace Rengar
 
             Menu spellMenu = Menu.AddSubMenu(new Menu("Spells", "Spells"));
             spellMenu.AddItem(new MenuItem("ComboSwitch", "ComboModeSwitch").SetValue(new KeyBind("T".ToCharArray()[0],KeyBindType.Press)));
-            spellMenu.AddItem(new MenuItem("ComboMode", "ComboMode").SetValue(new StringList(new[] { "Snare", "Burst"},0)));
+            spellMenu.AddItem(new MenuItem("ComboMode", "ComboMode").SetValue(new StringList(new[] { "Snare", "Burst","Auto"},0)));
             spellMenu.AddItem(new MenuItem("useSmite", "Use Smite Combo").SetValue(true));
             spellMenu.AddItem(new MenuItem("useYoumumu", "Use Youmumu while Steath").SetValue(true));
             spellMenu.AddItem(new MenuItem("Youmumu", "Youmumu while steath mode").SetValue(new StringList(new[] { "Always", "ComboMode" }, 0)));
@@ -352,6 +352,68 @@ namespace Rengar
                             {
                                 Q.Cast();
                             }
+                        }
+                        if (Q.IsReady() && Player.IsDashing())
+                        {
+                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack())
+                            {
+                                Q.Cast();
+                            }
+                        }
+
+                        if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 && !Player.HasBuff("rengarpassivebuff") && !Player.IsDashing())
+                        {
+                            var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
+                            if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                            {
+                                E.Cast(targetE);
+                            }
+                            foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
+                            {
+                                if (E.IsReady())
+                                    E.Cast(target);
+                            }
+                        }
+                    }
+                }
+                else if (mode == "Auto")
+                {
+                    if (Player.Mana < 5)
+                    {
+                        var targetW = TargetSelector.GetTarget(500, TargetSelector.DamageType.Physical);
+                        if (W.IsReady() && targetW.IsValidTarget() && !targetW.IsZombie)
+                        {
+                            W.Cast(targetW);
+                        }
+                        if (Orbwalking.CanMove(40))
+                        {
+                            var targetE = TargetSelector.GetTarget(E.Range, TargetSelector.DamageType.Physical);
+                            if (E.IsReady() && targetE.IsValidTarget() && !targetE.IsZombie)
+                            {
+                                E.Cast(targetE);
+                            }
+                            foreach (var target in HeroManager.Enemies.Where(x => x.IsValidTarget(E.Range) && !x.IsZombie))
+                            {
+                                if (E.IsReady())
+                                    E.Cast(target);
+                            }
+                        }
+                        if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
+                        {
+                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack() && dontwaitQ)
+                            {
+                                Q.Cast();
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if (Q.IsReady() && Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) != 0)
+                        {
+                            if (Orbwalking.CanMove(40) && !Orbwalking.CanAttack())
+                            {
+                                Q.Cast();
+                            }
 
                         }
                         if (Player.CountEnemiesInRange(Player.AttackRange + Player.BoundingRadius + 100) == 0 && !Player.HasBuff("rengarpassivebuff"))
@@ -537,11 +599,15 @@ namespace Rengar
             switch (comboMode)
             {
                 case "Snare":
-                    Menu.Item("ComboMode").SetValue(new StringList(new[] { "Snare", "Burst"},1));
+                    Menu.Item("ComboMode").SetValue(new StringList(new[] { "Snare", "Burst", "Auto" }, 1));
                     _lastTick = Environment.TickCount + 300;
                     break;
                 case "Burst":
-                    Menu.Item("ComboMode").SetValue(new StringList(new[] { "Snare", "Burst"},0));
+                    Menu.Item("ComboMode").SetValue(new StringList(new[] { "Snare", "Burst", "Auto" }, 2));
+                    _lastTick = Environment.TickCount + 300;
+                    break;
+                case "Auto":
+                    Menu.Item("ComboMode").SetValue(new StringList(new[] { "Snare", "Burst", "Auto" }, 0));
                     _lastTick = Environment.TickCount + 300;
                     break;
             }
