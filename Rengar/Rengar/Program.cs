@@ -621,21 +621,21 @@ namespace Rengar
             }
         }
         private static int _lastTick;
-        private static void DrawSelectedTarget()
+private static void DrawSelectedTarget()
         {
             if (notify)
             {
                 var target = TargetSelector.GetSelectedTarget();
                 if (target != null)
                 {
-                    if (notifyselected.Text == target.Name)
+                    if (notifyselected.Text == target.ChampionName)
                     {
                         return;
                     }
                     else
                     {
                         Notifications.RemoveNotification(notifyselected);
-                        notifyselected = new Notification(target.Name);
+                        notifyselected = new Notification(target.ChampionName);
                         Notifications.AddNotification(notifyselected);
                     }
                 }
