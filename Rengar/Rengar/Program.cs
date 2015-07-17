@@ -621,7 +621,7 @@ namespace Rengar
             }
         }
         private static int _lastTick;
-private static void DrawSelectedTarget()
+        private static void DrawSelectedTarget()
         {
             if (notify)
             {
